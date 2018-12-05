@@ -1,6 +1,6 @@
 import Auth from "@aws-amplify/auth";
 import Analytics from "@aws-amplify/analytics";
-import AWS, { Pinpoint } from "aws-sdk";
+import { Pinpoint } from "aws-sdk";
 
 import awsconfig from "./aws-exports";
 
@@ -153,33 +153,34 @@ const clearElement = element => {
   element.innerHTML = "";
 };
 
-const pinpointUpdateEndpoint = async email => {
-  const credentials = await Auth.currentUserCredentials();
-  if (credentials.identityId === undefined) {
-    console.warn("no identityId");
-    return;
-  }
-  const pinpoint = new Pinpoint({
-    region: awsconfig.aws_mobile_analytics_app_region,
-    credentials
-  });
-  const { identityId } = credentials;
-  const channelType = "EMAIL";
-  pinpoint
-    .updateEndpoint({
-      ApplicationId: awsconfig.aws_mobile_analytics_app_id,
-      EndpointId: `email-endpoint-${identityId}`,
-      EndpointRequest: {
-        Address: email,
-        ChannelType: channelType,
-        OptOut: "NONE",
-        User: {
-          UserId: identityId,
-          UserAttributes: {}
+const pinpointUpdateEndpoint = email => {
+  Auth.currentUserCredentials().then(credentials => {
+    if (credentials.identityId === undefined) {
+      console.warn("no identityId");
+      return;
+    }
+    const pinpoint = new Pinpoint({
+      region: awsconfig.aws_mobile_analytics_app_region,
+      credentials
+    });
+    const { identityId } = credentials;
+    const channelType = "EMAIL";
+    pinpoint
+      .updateEndpoint({
+        ApplicationId: awsconfig.aws_mobile_analytics_app_id,
+        EndpointId: `email-endpoint-${identityId}`,
+        EndpointRequest: {
+          Address: email,
+          ChannelType: channelType,
+          OptOut: "NONE",
+          User: {
+            UserId: identityId,
+            UserAttributes: {}
+          }
         }
-      }
-    })
-    .promise()
-    .then(data => console.log(data))
-    .catch(err => console.error(err));
+      })
+      .promise()
+      .then(data => console.log(data))
+      .catch(err => console.error(err));
+  });
 };
