@@ -1,3 +1,5 @@
 amplify
 .amplifyrc
 node_modules
+aws-exports.js
+dist
