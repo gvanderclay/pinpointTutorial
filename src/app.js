@@ -13,35 +13,8 @@ window.onload = function() {
   createSignupSigninScreen(document.getElementById("app"));
 };
 
-const createValidateScreen = (element, username, password) => {
-  clearElement(element);
-  const validateScreen = ` 
-    <label for="code"><b>Enter Validation code</b></label>
-    <input id="validationCode" type="text" placeholder="code" name="code" required>
-
-    <button id="validate" type="submit">Validate</button> 
-  `;
-  element.innerHTML = validateScreen;
-  setupValidationFields(element, username, password);
-};
-
-const setupValidationFields = (element, username, password) => {
-  const validateInput = document.getElementById("validationCode");
-  const validateBtn = document.getElementById("validate");
-  validateBtn.addEventListener("click", evt => {
-    const code = validateInput.value;
-    Auth.confirmSignUp(username, code)
-      .then(data => {
-        if (data === "SUCCESS") {
-          signInThenAdvance(element, username, password);
-        }
-      })
-      .catch(error => console.error(error));
-  });
-};
-
-const createSignupSigninScreen = element => {
-  clearElement(element);
+const createSignupSigninScreen = () => {
+  clearApp();
   const signupScreen = `
     <div>
       <label for="uname"><b>email</b></label>
@@ -65,32 +38,12 @@ const createSignupSigninScreen = element => {
       <button id="signin" type="submit">Sign in</button> 
     </div>
   `;
-  element.innerHTML = signupScreen + signinScreen;
-  setupSignupFields(element);
-  setupSigninFields(element);
+  setApp(signupScreen + signinScreen);
+  setupSignupFields();
+  setupSigninFields();
 };
 
-const setupSigninFields = element => {
-  const signinBtn = document.getElementById("signin");
-  const usernameElement = document.getElementById("signinUsername");
-  const passwordElement = document.getElementById("signinPassword");
-  signinBtn.addEventListener("click", evt => {
-    const email = usernameElement.value;
-    const password = passwordElement.value;
-    signInThenAdvance(element, email, password);
-  });
-};
-
-const signInThenAdvance = (element, email, password) => {
-  Auth.signIn(email, password)
-    .then(user => {
-      pinpointUpdateEndpoint(email);
-      setupSignoutAndDelete(element, user);
-    })
-    .catch(err => console.error(err));
-};
-
-const setupSignupFields = element => {
+const setupSignupFields = () => {
   const signupBtn = document.getElementById("signup");
   const usernameElement = document.getElementById("signupUsername");
   const passwordElement = document.getElementById("signupPassword");
@@ -105,15 +58,72 @@ const setupSignupFields = element => {
       }
     })
       .then(data => {
-        console.log(data);
-        createValidateScreen(element, email, password);
+        clearErrors();
+        createValidateScreen(email, password);
       })
-      .catch(err => console.error(err));
+      .catch(err => {
+        console.error(err);
+        setErrors(err);
+      });
   });
 };
 
-const setupSignoutAndDelete = (element, user) => {
-  clearElement(element);
+const setupSigninFields = () => {
+  const signinBtn = document.getElementById("signin");
+  const usernameElement = document.getElementById("signinUsername");
+  const passwordElement = document.getElementById("signinPassword");
+  signinBtn.addEventListener("click", evt => {
+    const email = usernameElement.value;
+    const password = passwordElement.value;
+    signInThenAdvance(email, password);
+  });
+};
+
+const createValidateScreen = (username, password) => {
+  clearApp();
+  const validateScreen = ` 
+    <label for="code"><b>Enter Validation code</b></label>
+    <input id="validationCode" type="text" placeholder="code" name="code" required>
+
+    <button id="validate" type="submit">Validate</button> 
+  `;
+  setApp(validateScreen);
+  setupValidationFields(username, password);
+};
+
+const setupValidationFields = (username, password) => {
+  const validateInput = document.getElementById("validationCode");
+  const validateBtn = document.getElementById("validate");
+  validateBtn.addEventListener("click", evt => {
+    const code = validateInput.value;
+    Auth.confirmSignUp(username, code)
+      .then(data => {
+        if (data === "SUCCESS") {
+          signInThenAdvance(username, password);
+        }
+      })
+      .catch(error => {
+        console.error(error);
+        setErrors(error);
+      });
+  });
+};
+
+const signInThenAdvance = (email, password) => {
+  clearErrors();
+  Auth.signIn(email, password)
+    .then(user => {
+      pinpointUpdateEndpoint(email);
+      setupSignoutAndDelete(user);
+    })
+    .catch(err => {
+      console.error(err);
+      setErrors(err);
+    });
+};
+
+const setupSignoutAndDelete = user => {
+  clearApp();
   const signoutScreen = `
     <div>
       <button id="signout">Sign out</button> 
@@ -121,36 +131,52 @@ const setupSignoutAndDelete = (element, user) => {
       <p>Signed in as: ${user["username"]}</p>
     </div>
   `;
-  element.innerHTML = signoutScreen;
-  setupSignoutButton(element);
-  setupDeleteButton(element, user);
+  setApp(signoutScreen);
+  setupSignoutButton();
+  setupDeleteButton(user);
 };
 
-const setupDeleteButton = element => {
+const setupSignoutButton = () => {
+  const signoutBtn = document.getElementById("signout");
+  signoutBtn.addEventListener("click", evt => {
+    signoutThenGoBack();
+  });
+};
+
+const setupDeleteButton = () => {
   const deleteBtn = document.getElementById("delete");
   deleteBtn.addEventListener("click", evt => {
     Auth.currentAuthenticatedUser().then(user => {
       user.deleteUser();
-      signoutThenGoBack(element);
+      signoutThenGoBack();
     });
   });
 };
 
-const setupSignoutButton = element => {
-  const signoutBtn = document.getElementById("signout");
-  signoutBtn.addEventListener("click", evt => {
-    signoutThenGoBack(element);
-  });
-};
-
-const signoutThenGoBack = element => {
+const signoutThenGoBack = () => {
   Auth.signOut().then(() => {
-    createSignupSigninScreen(element);
+    createSignupSigninScreen();
   });
 };
 
-const clearElement = element => {
-  element.innerHTML = "";
+const setErrors = content => {
+  document.getElementById("errors").innerHTML = JSON.stringify(
+    content,
+    null,
+    2
+  );
+};
+
+const clearErrors = () => {
+  document.getElementById("errors").innerHTML = "";
+};
+
+const setApp = content => {
+  document.getElementById("app").innerHTML = content;
+};
+
+const clearApp = () => {
+  document.getElementById("app").innerHTML = "";
 };
 
 const pinpointUpdateEndpoint = email => {
